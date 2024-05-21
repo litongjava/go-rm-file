@@ -2,42 +2,50 @@ package main
 
 import (
   "fmt"
+  "github.com/cloudwego/hertz/pkg/common/hlog"
   "os"
   "path/filepath"
-  "strings"
 )
 
 func main() {
   if len(os.Args) < 2 {
-    fmt.Println("Usage: go-rm-file [path] [suffix]")
+    fmt.Println("Usage: go-rm-file [path] [name]")
     return
   }
   path := os.Args[1]
-  suffix:=os.Args[2]
-  fmt.Println("Path,suffix", path,suffix)
+  var name = os.Args[2]
+  hlog.Info("Path and name:", path, name)
 
-  err := filepath.Walk(path, func(filePath string, info os.FileInfo, err error) error {
-    if err != nil {
-      return err
+  deleteTaget(path, name)
+}
+
+func deleteTaget(path string, name string) {
+
+  err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+    stat, _ := os.Stat(path)
+    if stat == nil {
+      return nil
     }
-
-    filename := info.Name()
-    if !info.IsDir() && strings.HasSuffix(filename, "."+suffix) {
-      err = os.Remove(filePath)
-      if err != nil {
-        fmt.Println("delete fail:{}", filename)
-        return err
-      } else {
-        fmt.Println("deleted", filename)
+    if err != nil {
+      fmt.Println("error", err)
+    }
+    if info.IsDir() {
+      folderName := info.Name()
+      if folderName == name {
+        err := os.RemoveAll(path)
+        if err != nil {
+          hlog.Info("delete faild ", path)
+        } else {
+          hlog.Info("deleted ", path)
+          return nil
+        }
       }
     }
-
     return nil
   })
 
   if err != nil {
-    fmt.Println("Error:", err)
-    return
+    hlog.Info("Error:", err)
   }
 
   fmt.Println("Done")
